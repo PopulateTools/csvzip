@@ -1,0 +1,116 @@
+name: Upload Release
+
+on:
+  push:
+    tags:
+    - v* # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+
+  build_linux:
+    name: Build for GNU/Linux
+    runs-on: ubuntu-latest
+
+    # we build statically linked binaries using the official
+    # Crystal alpine-linux docker image
+    # (we need musl-libc, hence we use Alpine)
+    # https://crystal-lang.org/2020/02/02/alpine-based-docker-images.html
+    container:
+      image: crystallang/crystal:latest-alpine
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: shards install
+    - name: Build
+      run: shards build --production --static
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: csvzip-linux
+        path: ./bin/csvzip
+
+  build_macos:
+    name: Build for macOS
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Brew update
+      run: brew update
+    - name: Install Crystal
+      run: brew install crystal
+
+    - name: Install dependencies
+      run: shards install
+    - name: Build
+      run: shards build --production # no static linking on macOS: https://developer.apple.com/library/archive/qa/qa1118/_index.html
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: csvzip-darwin
+        path: ./bin/csvzip
+
+  create_release:
+    needs: [build_linux, build_macos]
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    - name: Get the version # https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32163/highlight/true#M1024
+      id: get_version
+      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
+    # get artifacts containing the builds
+    - name: Download csvzip-linux
+      uses: actions/download-artifact@v1
+      with:
+        name: csvzip-linux
+    - name: Download csvzip-darwin
+      uses: actions/download-artifact@v1
+      with:
+        name: csvzip-darwin
+
+    # create tar archives
+    - shell: bash
+      run: |
+        chmod +x ./csvzip-linux/csvzip
+        chmod +x ./csvzip-darwin/csvzip
+        tar -czf csvzip-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz -C ./csvzip-linux .
+        tar -czf csvzip-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz -C ./csvzip-darwin .
+
+    # upload archives
+    - name: Upload Release Asset Linux
+      id: upload-release-asset-linux
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./csvzip-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+        asset_name: csvzip-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+        asset_content_type: application/gzip
+    - name: Upload Release Asset macOS
+      id: upload-release-asset-macos
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./csvzip-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz
+        asset_name: csvzip-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz
+        asset_content_type: application/gzip

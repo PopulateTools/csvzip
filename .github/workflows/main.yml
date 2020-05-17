@@ -1,0 +1,56 @@
+name: csvzip tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build_linux:
+    runs-on: ubuntu-latest
+
+    container:
+      image: crystallang/crystal:latest-alpine
+
+    steps:
+    - uses: actions/checkout@v2
+
+    # this is for bash and ansible
+    - name: Apk update
+      run: apk update
+    - name: Pre-req - bash
+      run: apk add bash
+
+    # csvzip tests
+    - name: Install dependencies
+      run: shards install
+    - name: Run unittests
+      run: crystal spec
+    - name: Run tool format check
+      run: crystal tool format --check
+    - name: Build
+      run: shards build
+
+  build_macos:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    # install Crystal
+    - name: Brew update
+      run: brew update
+    - name: Install Crystal
+      run: brew install crystal
+
+    # csvzip tests
+    - name: Install dependencies
+      run: shards install
+    - name: Run unittests
+      run: crystal spec
+    - name: Run tool format check
+      run: crystal tool format --check
+    - name: Build
+      run: shards build
