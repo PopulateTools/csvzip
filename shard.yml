@@ -1,0 +1,13 @@
+name: csvzip
+version: 0.1.0
+
+authors:
+  - Fernando Blat <fernando[¡at!]blat.es>
+
+targets:
+  csvzip:
+    main: src/cli.cr
+
+crystal: 0.34.0
+
+license: MIT
