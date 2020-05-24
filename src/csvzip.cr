@@ -47,6 +47,10 @@ module Csvzip
         end
       end
 
+      @columns.each do |column|
+        @dictionary[@dictionary_key][column] = @dictionary[@dictionary_key][column].invert
+      end
+
       File.open(@dictionary_file, "w") do |file|
         @dictionary.to_json(file)
       end
