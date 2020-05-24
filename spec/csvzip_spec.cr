@@ -32,8 +32,8 @@ describe Csvzip do
         reader = CSV.new(infile, header = true, strip = true)
         reader.next
         row = reader.row.to_h
-        row["origin"].should eq dictionary[dictionary_key]["origin"]["MADRID"]
-        row["destination"].should eq dictionary[dictionary_key]["destination"]["BARCELONA"]
+        dictionary[dictionary_key]["origin"][row["origin"]].should eq "MADRID"
+        dictionary[dictionary_key]["destination"][row["destination"]].should eq "BARCELONA"
       end
 
       # Ensure output files are removed

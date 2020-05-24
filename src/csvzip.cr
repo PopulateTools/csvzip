@@ -2,7 +2,7 @@ require "csv"
 require "json"
 
 module Csvzip
-  VERSION = "0.1.0"
+  VERSION = "0.2.0"
 
   class Compressor
     def initialize(
@@ -45,6 +45,10 @@ module Csvzip
             end
           end
         end
+      end
+
+      @columns.each do |column|
+        @dictionary[@dictionary_key][column] = @dictionary[@dictionary_key][column].invert
       end
 
       File.open(@dictionary_file, "w") do |file|
