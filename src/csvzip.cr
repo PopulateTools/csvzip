@@ -2,7 +2,7 @@ require "csv"
 require "json"
 
 module Csvzip
-  VERSION = "0.1.0"
+  VERSION = "0.2.0"
 
   class Compressor
     def initialize(
